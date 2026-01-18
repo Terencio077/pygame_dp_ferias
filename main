@@ -39,9 +39,16 @@ clock = pygame.time.Clock()
 font = pygame.font.SysFont("Arial", 28)
 
 def try_load_image(name):
-    # tenta carregar imagem pelo nome direto, assets/ e assets_futebol/
-    paths = [name, os.path.join('assets', name), os.path.join('assets_futebol', name)]
+    # tenta carregar imagem buscando a partir do diretório deste arquivo
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    paths = [
+        os.path.join(base_dir, name),
+        os.path.join(base_dir, 'assets', name),
+        os.path.join(base_dir, 'assets_futebol', name),
+    ]
     for p in paths:
+        if not os.path.exists(p):
+            continue
         try:
             return pygame.image.load(p)
         except Exception:
@@ -127,9 +134,17 @@ print("  PLAYER_BLUE_LEG_RIGHT:", PLAYER_BLUE_LEG_RIGHT is not None)
 print("  PLAYER_RED_LEG_LEFT:", PLAYER_RED_LEG_LEFT is not None)
 print("  PLAYER_RED_LEG_RIGHT:", PLAYER_RED_LEG_RIGHT is not None)
 
+# carregar imagem da bola (assets_futebol/football.png ou football)
+BALL_IMG = try_load_image("football.png") or try_load_image("football")
+if BALL_IMG:
+    try:
+        BALL_IMG = BALL_IMG.convert_alpha()
+    except Exception:
+        BALL_IMG = BALL_IMG.convert()
+
 # ------ Classes ------
 class Ball:
-    def __init__(self, x, y, r=18):
+    def __init__(self, x, y, r=16):
         self.x = x
         self.y = y
         self.r = r
@@ -155,39 +170,23 @@ class Ball:
             self.vy = -abs(self.vy) * BALL_BOUNCE
             self.vx *= BALL_FRICTION
 
-        # colisão com paredes
+        # colisão com paredes (mas permitir que bola entre nos gols)
+        # gol esquerdo: não rebater se x < 10 e altura certa
         if self.x - self.r < 0:
-            self.x = self.r
-            self.vx = abs(self.vx) * 0.8
+            if not (self.x - self.r < 10 and GROUND_Y - 85 < self.y <= GROUND_Y):
+                self.x = self.r
+                self.vx = abs(self.vx) * 0.8
+        
+        # gol direito: não rebater se x > WIDTH-10 e altura certa
         if self.x + self.r > WIDTH:
-            self.x = WIDTH - self.r
-            self.vx = -abs(self.vx) * 0.8
+            if not (self.x + self.r > WIDTH - 10 and GROUND_Y - 85 < self.y <= GROUND_Y):
+                self.x = WIDTH - self.r
+                self.vx = -abs(self.vx) * 0.8
 
         # colisão com o teto da janela (se bater no topo)
         if self.y - self.r < 0:
             self.y = self.r
             self.vy = abs(self.vy) * BALL_BOUNCE
-
-        # colisão com a trave superior (quando atingir a região das metas)
-        crossbar_y = GROUND_Y - 110
-        goal_zone_width = 160  # distância desde cada lateral
-        crossbar_thickness = 50  # zona MAIOR de detecção acima da trave
-        
-        # esquerda: detectar bola na região superior da trave
-        if self.y - self.r <= crossbar_y and self.x < goal_zone_width:
-            # se bola está acima e perto da trave, quicar para cima
-            if self.y - self.r > crossbar_y - crossbar_thickness:
-                self.y = crossbar_y + self.r
-                self.vy = abs(self.vy) * BALL_BOUNCE * 1.2  # quicar bem forte
-                self.vx *= 0.75
-        
-        # direita: detectar bola na região superior da trave
-        if self.y - self.r <= crossbar_y and self.x > WIDTH - goal_zone_width:
-            # se bola está acima e perto da trave, quicar para cima
-            if self.y - self.r > crossbar_y - crossbar_thickness:
-                self.y = crossbar_y + self.r
-                self.vy = abs(self.vy) * BALL_BOUNCE * 1.2  # quicar bem forte
-                self.vx *= 0.75
 
         # leve resistência
         self.vx *= BALL_FRICTION
@@ -223,9 +222,52 @@ class Ball:
                 self.vx = (8.0 if random.random() > 0.5 else -8.0) + random.uniform(-3, 3)
 
     def draw(self, surf):
-        pygame.draw.circle(surf, WHITE, (int(self.x), int(self.y)), self.r)
-        # detalhe
-        pygame.draw.circle(surf, DARK, (int(self.x - self.r*0.3), int(self.y - self.r*0.3)), max(2, int(self.r*0.12)))
+        # se houver imagem carregada, usa a imagem (`assets_futebol/football`)
+        if 'BALL_IMG' in globals() and BALL_IMG:
+            try:
+                img = pygame.transform.smoothscale(BALL_IMG, (int(self.r * 2), int(self.r * 2)))
+            except Exception:
+                img = pygame.transform.scale(BALL_IMG, (int(self.r * 2), int(self.r * 2)))
+            rect = img.get_rect(center=(int(self.x), int(self.y)))
+            surf.blit(img, rect)
+            return
+
+        # desenha bola com padrão clássico: hexágonos/pentágonos pretos e brancos (fallback)
+        w = self.r * 2 + 6
+        h = w
+        ball_surf = pygame.Surface((w, h), pygame.SRCALPHA)
+        cx, cy = w // 2, h // 2
+
+        # base branca
+        pygame.draw.circle(ball_surf, (255, 255, 255), (cx, cy), self.r)
+
+        # helper: polígono regular
+        def regular_poly(x, y, rad, sides, rot=0.0):
+            pts = []
+            for i in range(sides):
+                a = rot + i * (2 * math.pi / sides)
+                pts.append((int(x + math.cos(a) * rad), int(y + math.sin(a) * rad)))
+            return pts
+
+        # centro: pequeno pentágono preto
+        center_rad = int(self.r * 0.26)
+        center_pts = regular_poly(cx, cy, center_rad, 5, math.radians(-18))
+        pygame.draw.polygon(ball_surf, (0, 0, 0), center_pts)
+
+        # hexágonos ao redor (6 ao redor do pentágono) - cores alternadas
+        ring_dist = int(self.r * 0.58)
+        hex_rad = int(self.r * 0.28)
+        for k in range(6):
+            ang = k * (2 * math.pi / 6)
+            px = cx + int(math.cos(ang) * ring_dist)
+            py = cy + int(math.sin(ang) * ring_dist)
+            pts = regular_poly(px, py, hex_rad, 6, ang + math.radians(30))
+            fill_color = WHITE if (k % 2 == 0) else BLACK
+            pygame.draw.polygon(ball_surf, fill_color, pts)
+            if fill_color == WHITE:
+                pygame.draw.polygon(ball_surf, BLACK, pts, 1)
+
+        surf.blit(ball_surf, (int(self.x - cx), int(self.y - cy)))
 
 class Player:
     def __init__(self, x, color, controls, image=None):
@@ -541,11 +583,11 @@ def draw_field(surf):
         surf.fill(GREEN)
 
 def check_goal(ball, players):
-    # gol esquerdo - zona ampla para detectar bola entrando
-    if ball.x - ball.r <= 10 and GROUND_Y - 115 < ball.y < GROUND_Y:
+    # gol esquerdo - zona de detecção apenas na altura do gol
+    if ball.x - ball.r <= 10 and GROUND_Y - 85 < ball.y <= GROUND_Y:
         return 'right'  # gol do time da direita
-    # gol direito - zona ampla para detectar bola entrando
-    if ball.x + ball.r >= WIDTH - 10 and GROUND_Y - 115 < ball.y < GROUND_Y:
+    # gol direito - zona de detecção apenas na altura do gol
+    if ball.x + ball.r >= WIDTH - 10 and GROUND_Y - 85 < ball.y <= GROUND_Y:
         return 'left'
     return None
 
