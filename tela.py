@@ -1,108 +1,91 @@
-# tela.py
 import pygame
 import sys
+import os
 
-def tela_inicial(screen, clock, bg_image_game=None):
+def desenhar_texto_contornado(screen, texto, fonte, cor_interna, cor_contorno, pos_centro):
+    """Cria o efeito de contorno grosso igual ao da imagem"""
+    x, y = pos_centro
+    # Desenha o contorno em 8 direções para dar espessura
+    offsets = [(-2,-2), (0,-2), (2,-2), (-2,0), (2,0), (-2,2), (0,2), (2,2)]
+    for dx, dy in offsets:
+        surf_c = fonte.render(texto, True, cor_contorno)
+        screen.blit(surf_c, surf_c.get_rect(center=(x + dx, y + dy)))
+    
+    # Desenha o texto principal por cima
+    surf_p = fonte.render(texto, True, cor_interna)
+    screen.blit(surf_p, surf_p.get_rect(center=(x, y)))
+
+def tela_inicial(screen, clock):
     largura, altura = screen.get_size()
     
-    # Fontes
-    font_title = pygame.font.SysFont("impact", 90)
-    font_option = pygame.font.SysFont("verdana", 35, bold=True)
-    font_help = pygame.font.SysFont("verdana", 22)
+    # Carrega a imagem da pasta assets_futebol conforme seu projeto
+    caminho = os.path.join('assets_futebol', 'fundo.tela.png')
+    try:
+        bg_menu = pygame.image.load(caminho).convert()
+        bg_menu = pygame.transform.scale(bg_menu, (largura, altura))
+    except:
+        bg_menu = pygame.Surface((largura, altura))
+        bg_menu.fill((30, 144, 255))
 
-    options = ["JOGAR", "CONFIGURAÇÃO DO JOGO", "SAIR"]
-    selecionado = 0
+    # Configuração de Fontes
+    fonte_nome = "impact" 
+    font_titulo = pygame.font.SysFont(fonte_nome, 100)
+    font_menu = pygame.font.SysFont(fonte_nome, 55)
+    font_ajuda = pygame.font.SysFont("arial", 25, bold=True)
+
+    options = ["PLAY", "CONFIGURAÇÕES", "SAIR"]
     mostrar_ajuda = False
-
-    # Preparar a imagem de fundo para garantir que ela cubra a tela do menu
-    background = None
-    if bg_image_game:
-        background = pygame.transform.scale(bg_image_game, (largura, altura))
 
     while True:
         mouse_pos = pygame.mouse.get_pos()
-        
-        # Criar áreas de clique dinâmicas para as opções
+        # Criamos os retângulos de colisão para cada opção
         rects = []
         for i in range(len(options)):
-            # Retângulo invisível centralizado para detecção de colisão
-            r = pygame.Rect(0, 0, 500, 60)
-            r.center = (largura // 2, altura // 2 + (i * 80))
+            # Retângulo invisível para detectar o mouse
+            r = pygame.Rect(0, 0, 450, 60)
+            r.center = (largura // 2, 350 + (i * 90))
             rects.append(r)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit(); sys.exit()
-
+            
             if not mostrar_ajuda:
-                # Navegação por Teclado
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_DOWN:
-                        selecionado = (selecionado + 1) % len(options)
-                    elif event.key == pygame.K_UP:
-                        selecionado = (selecionado - 1) % len(options)
-                    elif event.key == pygame.K_RETURN:
-                        if selecionado == 0: return # Inicia o jogo
-                        elif selecionado == 1: mostrar_ajuda = True
-                        elif selecionado == 2: pygame.quit(); sys.exit()
-                
-                # Detecção de Clique do Mouse
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     for i, r in enumerate(rects):
                         if r.collidepoint(mouse_pos):
-                            if i == 0: return
-                            elif i == 1: mostrar_ajuda = True
-                            elif i == 2: pygame.quit(); sys.exit()
-                
-                # Highlight ao passar o mouse
-                for i, r in enumerate(rects):
-                    if r.collidepoint(mouse_pos):
-                        selecionado = i
+                            if i == 0: return # Botão PLAY
+                            elif i == 1: mostrar_ajuda = True # Botão CONFIGURAÇÕES
+                            elif i == 2: pygame.quit(); sys.exit() # Botão SAIR
             else:
-                # Sair da tela de Configuração
-                if event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
+                if event.type == pygame.MOUSEBUTTONDOWN or event.type == pygame.KEYDOWN:
                     mostrar_ajuda = False
 
-        # --- RENDERIZAÇÃO ---
-        
-        # 1. Desenhar Fundo (Prioridade total para a imagem do jogo)
-        if background:
-            screen.blit(background, (0, 0))
-        else:
-            screen.fill((40, 180, 60)) # Verde caso a imagem falhe
+        # --- DESENHO ---
+        screen.blit(bg_menu, (0, 0))
 
         if not mostrar_ajuda:
-            # 2. Título "FUTEBOL" com sombra para melhor leitura
-            title_surf = font_title.render("FUTEBOL", True, (255, 255, 255))
-            shadow = font_title.render("FUTEBOL", True, (0, 0, 0))
-            screen.blit(shadow, (largura//2 - title_surf.get_width()//2 + 5, 105))
-            screen.blit(title_surf, (largura//2 - title_surf.get_width()//2, 100))
+            # Título principal
+            desenhar_texto_contornado(screen, "FUTEBOL GAME", font_titulo, (255,255,255), (0,0,0), (largura//2, 150))
 
-            # 3. Desenhar Opções centralizadas
+            # Desenha as opções com mudança de cor no mouse
             for i, opt in enumerate(options):
-                # Cor amarela se selecionado (mesmo estilo do seu código principal)
-                cor = (240, 200, 30) if i == selecionado else (255, 255, 255)
-                txt_surf = font_option.render(opt, True, cor)
-                txt_rect = txt_surf.get_rect(center=rects[i].center)
-                screen.blit(txt_surf, txt_rect)
+                # Se o mouse estiver sobre o retângulo, muda para Amarelo, senão fica Branco
+                if rects[i].collidepoint(mouse_pos):
+                    cor_texto = (255, 215, 0) # Amarelo (Hover)
+                else:
+                    cor_texto = (255, 255, 255) # Branco (Padrão)
+                
+                desenhar_texto_contornado(screen, opt, font_menu, cor_texto, (0,0,0), rects[i].center)
         else:
-            # 4. Tela de Configuração (Instruções de como jogar)
+            # Tela de Instruções (Overlay)
             overlay = pygame.Surface((largura, altura), pygame.SRCALPHA)
-            overlay.fill((0, 0, 0, 210)) # Fundo escurecido semi-transparente
+            overlay.fill((0, 0, 0, 200))
             screen.blit(overlay, (0,0))
-            
-            ajuda_texto = [
-                "COMO JOGAR",
-                "",
-                "Jogador Azul: W, A, D (Movimento) | S (Chute) | X (Lob)",
-                "Jogador Vermelho: Setas (Movimento) | Seta Baixo (Chute) | M (Lob)",
-                "",
-                "Pressione qualquer tecla para voltar ao menu"
-            ]
-            for i, linha in enumerate(ajuda_texto):
-                cor_linha = (240, 200, 30) if i == 0 else (255, 255, 255)
-                txt = font_help.render(linha, True, cor_linha)
-                screen.blit(txt, (largura//2 - txt.get_width()//2, 160 + i * 50))
+            instrucoes = ["COMO JOGAR", "", "P1: WASD | S: Chute", "P2: Setas | Baixo: Chute", "", "CLIQUE PARA VOLTAR"]
+            for i, l in enumerate(instrucoes):
+                cor = (255, 215, 0) if i == 0 else (255, 255, 255)
+                desenhar_texto_contornado(screen, l, font_ajuda, cor, (0,0,0), (largura//2, 150 + i*50))
 
         pygame.display.flip()
         clock.tick(60)
