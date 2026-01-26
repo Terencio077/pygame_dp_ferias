@@ -1,684 +1,181 @@
-# football_heads.py
 import pygame
 import os
 import sys
 import math
 import random
+import tela 
 
 # ------ Configurações ------
 WIDTH, HEIGHT = 1000, 600
 FPS = 60
-
 GROUND_Y = HEIGHT - 80
-GOAL_WIDTH = 140
 SCORE_TO_WIN = 5
-
-# Física
 GRAVITY = 0.9
 FRICTION = 0.995
 BALL_FRICTION = 0.999
-BALL_BOUNCE = 0.88
-MAX_BALL_SPEED = 15.0    # velocidade máxima da bola (px/frame)
-PLAYER_BOUNCE = 0.15  # restituição para colisão bola-jogador (menor = menos elástico)
-BALL_GRAVITY_MULT = 0.9  # multiplicador de gravidade específico para a bola (era 0.45)
-BALL_TOP_MARGIN = 40     # quanto acima da tela a bola pode subir (px)
-
-# Cores
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-GREEN = (40, 180, 60)
-BLUE = (60, 140, 220)
-RED = (220, 60, 60)
-YELLOW = (240, 200, 30)
-DARK = (25, 25, 25)
+BALL_BOUNCE = 0.65       # Reduzido para não pular tanto
+MAX_BALL_SPEED = 15.0    
+PLAYER_BOUNCE = 0.15     
+BALL_GRAVITY_MULT = 0.9  
+BALL_TOP_MARGIN = 40     
+WHITE, BLACK, GREEN, BLUE, RED = (255,255,255), (0,0,0), (40,180,60), (60,140,220), (220,60,60)
 
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Football Heads - Pygame Prototype")
 clock = pygame.time.Clock()
-font = pygame.font.SysFont("Arial", 28)
+
+# Fonte para o placar e pausa (tamanho aumentado e cor branca)
+font = pygame.font.SysFont("Arial", 45)
 
 def try_load_image(name):
-    # tenta carregar imagem pelo nome direto, assets/ e assets_futebol/
     paths = [name, os.path.join('assets', name), os.path.join('assets_futebol', name)]
     for p in paths:
-        try:
-            return pygame.image.load(p)
-        except Exception:
-            continue
+        try: return pygame.image.load(p)
+        except: continue
     return None
 
-# carregar imagem de fundo (arquivo 'plano de fundo.png' na raiz ou em assets)
+# Carregamento de Recursos
 _bg = try_load_image("plano de fundo.png")
-if _bg:
-    try:
-        bg_image = pygame.transform.scale(_bg, (WIDTH, HEIGHT)).convert()
-    except Exception:
-        bg_image = _bg.convert()
-else:
-    bg_image = None
+bg_image = pygame.transform.scale(_bg, (WIDTH, HEIGHT)).convert() if _bg else None
+if bg_image: GROUND_Y = HEIGHT - 20
 
-# se houver imagem de fundo, ajusta o chão para ficar próximo ao fim da imagem
-if bg_image:
-    GROUND_Y = HEIGHT - 20
-
-# carregar sprites dos jogadores (fallback para desenho se não existirem)
-_p_blue = try_load_image("Player Blu.png") or try_load_image("Player Blu.png")
-if _p_blue:
-    try:
-        _p_blue = _p_blue.convert_alpha()
-    except Exception:
-        _p_blue = _p_blue.convert()
-    target_h = int(40 * 2.2)
-    _w = int(_p_blue.get_width() * (target_h / _p_blue.get_height()))
-    PLAYER_BLUE_IMG = pygame.transform.scale(_p_blue, (_w, target_h))
-else:
-    PLAYER_BLUE_IMG = None
-
+_p_blue = try_load_image("Player Blu.png")
 _p_red = try_load_image("Player Red.png")
-if _p_red:
-    try:
-        _p_red = _p_red.convert_alpha()
-    except Exception:
-        _p_red = _p_red.convert()
-    target_h = int(40 * 2.2)
-    _w = int(_p_red.get_width() * (target_h / _p_red.get_height()))
-    PLAYER_RED_IMG = pygame.transform.scale(_p_red, (_w, target_h))
-else:
-    PLAYER_RED_IMG = None
+PLAYER_BLUE_IMG = pygame.transform.scale(_p_blue.convert_alpha(), (int(_p_blue.get_width() * (88 / _p_blue.get_height())), 88)) if _p_blue else None
+PLAYER_RED_IMG = pygame.transform.scale(_p_red.convert_alpha(), (int(_p_red.get_width() * (88 / _p_red.get_height())), 88)) if _p_red else None
 
-# carregar sprites das pernas (fallbacks: flip quando necessário)
-_p_b_left = try_load_image("Player blu left leg.png")
-if _p_b_left:
-    try:
-        _p_b_left = _p_b_left.convert_alpha()
-    except Exception:
-        _p_b_left = _p_b_left.convert()
-    PLAYER_BLUE_LEG_LEFT = pygame.transform.scale(
-        _p_b_left,
-        (int(_p_b_left.get_width() * 1.0), int(_p_b_left.get_height() * 1.0))
-    )
-else:
-    PLAYER_BLUE_LEG_LEFT = None
-
-_p_b_right = try_load_image("Player blu right leg.png")
-if _p_b_right:
-    try:
-        _p_b_right = _p_b_right.convert_alpha()
-    except Exception:
-        _p_b_right = _p_b_right.convert()
-    PLAYER_BLUE_LEG_RIGHT = pygame.transform.scale(
-        _p_b_right,
-        (int(_p_b_right.get_width() * 1.0), int(_p_b_right.get_height() * 1.0))
-    )
-else:
-    PLAYER_BLUE_LEG_RIGHT = pygame.transform.flip(PLAYER_BLUE_LEG_LEFT, True, False) if PLAYER_BLUE_LEG_LEFT else None
-
-_p_r_left = try_load_image("Player red left leg.png")
-if _p_r_left:
-    try:
-        _p_r_left = _p_r_left.convert_alpha()
-    except Exception:
-        _p_r_left = _p_r_left.convert()
-    PLAYER_RED_LEG_LEFT = pygame.transform.scale(
-        _p_r_left,
-        (int(_p_r_left.get_width() * 1.0), int(_p_r_left.get_height() * 1.0))
-    )
-else:
-    PLAYER_RED_LEG_LEFT = None
-
+PLAYER_BLUE_LEG_LEFT = try_load_image("Player blu left leg.png")
+PLAYER_BLUE_LEG_RIGHT = try_load_image("Player blu right leg.png")
+PLAYER_RED_LEG_LEFT = try_load_image("Player red left leg.png")
 PLAYER_RED_LEG_RIGHT = pygame.transform.flip(PLAYER_RED_LEG_LEFT, True, False) if PLAYER_RED_LEG_LEFT else None
 
-# ====== SPRITE DA BOLA (ADICIONADO) ======
-_ball = (
-    try_load_image("ball.png") or try_load_image("Ball.png") or
-    try_load_image("bola.png") or try_load_image("Bola.png")
-)
-if _ball:
-    try:
-        _ball = _ball.convert_alpha()
-    except Exception:
-        _ball = _ball.convert()
-    # tamanho aproximado do diâmetro da bola (2*r). r=18 => 36 (usei 38 pra ficar bonito)
-    BALL_IMG = pygame.transform.smoothscale(_ball, (38, 38))
-else:
-    BALL_IMG = None
+# USANDO A IMAGEM football.png PARA A BOLA
+_ball = try_load_image("football.png")
+BALL_IMG = pygame.transform.smoothscale(_ball.convert_alpha(), (38, 38)) if _ball else None
 
-# debug: report quais sprites foram carregadas
-print("Sprite load status:")
-print("  PLAYER_BLUE_IMG:", PLAYER_BLUE_IMG is not None)
-print("  PLAYER_RED_IMG:", PLAYER_RED_IMG is not None)
-print("  PLAYER_BLUE_LEG_LEFT:", PLAYER_BLUE_LEG_LEFT is not None)
-print("  PLAYER_BLUE_LEG_RIGHT:", PLAYER_BLUE_LEG_RIGHT is not None)
-print("  PLAYER_RED_LEG_LEFT:", PLAYER_RED_LEG_LEFT is not None)
-print("  PLAYER_RED_LEG_RIGHT:", PLAYER_RED_LEG_RIGHT is not None)
-print("  BALL_IMG:", BALL_IMG is not None)
-
-# ------ Classes ------
 class Ball:
     def __init__(self, x, y, r=18):
-        self.x = x
-        self.y = y
-        self.r = r
-        self.vx = 0.0
-        self.vy = 0.0
-
+        self.x, self.y, self.r, self.vx, self.vy = x, y, r, 0.0, 0.0
     def update(self):
-        # física simples (gravidade aplicada com multiplicador da bola)
         self.vy += GRAVITY * BALL_GRAVITY_MULT
         self.x += self.vx
         self.y += self.vy
-
-        # limitar altura máxima: não permitir que a bola vá muito acima da tela
-        if self.y - self.r < -BALL_TOP_MARGIN:
-            self.y = -BALL_TOP_MARGIN + self.r
-            if self.vy < 0:
-                self.vy = 0.0
-
-        # colisão com chão
         if self.y + self.r > GROUND_Y:
-            self.y = GROUND_Y - self.r
-            self.vy = -abs(self.vy) * BALL_BOUNCE
+            self.y, self.vy = GROUND_Y - self.r, -abs(self.vy) * BALL_BOUNCE
             self.vx *= BALL_FRICTION
-
-        # colisão com paredes
-        if self.x - self.r < 0:
-            self.x = self.r
-            self.vx = abs(self.vx) * 0.8
-        if self.x + self.r > WIDTH:
-            self.x = WIDTH - self.r
-            self.vx = -abs(self.vx) * 0.8
-
-        # colisão com o teto da janela
-        if self.y - self.r < 0:
-            self.y = self.r
-            self.vy = abs(self.vy) * BALL_BOUNCE
-
-        # colisão com a trave superior
+        if self.x - self.r < 0 or self.x + self.r > WIDTH:
+            self.vx, self.x = -abs(self.vx) * 0.8 if self.x + self.r > WIDTH else abs(self.vx) * 0.8, self.r if self.x - self.r < 0 else WIDTH - self.r
         crossbar_y = GROUND_Y - 110
-        goal_zone_width = 160
-        crossbar_thickness = 50
-
-        if self.y - self.r <= crossbar_y and self.x < goal_zone_width:
-            if self.y - self.r > crossbar_y - crossbar_thickness:
-                self.y = crossbar_y + self.r
-                self.vy = abs(self.vy) * BALL_BOUNCE * 1.2
-                self.vx *= 0.75
-
-        if self.y - self.r <= crossbar_y and self.x > WIDTH - goal_zone_width:
-            if self.y - self.r > crossbar_y - crossbar_thickness:
-                self.y = crossbar_y + self.r
-                self.vy = abs(self.vy) * BALL_BOUNCE * 1.2
-                self.vx *= 0.75
-
-        # leve resistência
-        self.vx *= BALL_FRICTION
-        if abs(self.vx) < 0.01:
-            self.vx = 0.0
-        if abs(self.vy) < 0.01 and self.y + self.r >= GROUND_Y - 0.5:
-            self.vy = 0.0
-
-        # limitar velocidade máxima da bola
+        if (self.y - self.r <= crossbar_y) and (self.x < 160 or self.x > WIDTH - 160):
+            self.y, self.vy = crossbar_y + self.r, abs(self.vy) * BALL_BOUNCE * 1.2
+            self.vx *= 0.75
         speed = math.hypot(self.vx, self.vy)
         if speed > MAX_BALL_SPEED:
-            scale = MAX_BALL_SPEED / speed
-            self.vx *= scale
-            self.vy *= scale
-
+            self.vx *= MAX_BALL_SPEED / speed
+            self.vy *= MAX_BALL_SPEED / speed
     def check_stuck_between_players(self, p1, p2):
-        left_player = p1 if p1.x < p2.x else p2
-        right_player = p2 if p1.x < p2.x else p1
-
-        if left_player.x < self.x < right_player.x:
-            dist_left = abs(self.x - left_player.x)
-            dist_right = abs(self.x - right_player.x)
-            if dist_left < left_player.head_radius + 30 and dist_right < right_player.head_radius + 30:
-                self.y = min(left_player.y, right_player.y) - 60
-                self.vy = -25.0
-                self.vx = (8.0 if random.random() > 0.5 else -8.0) + random.uniform(-3, 3)
-
+        if min(p1.x, p2.x) < self.x < max(p1.x, p2.x) and abs(self.x - p1.x) < 53 and abs(self.x - p2.x) < 53:
+            self.y, self.vy, self.vx = min(p1.y, p2.y) - 60, -25.0, (8.0 if random.random() > 0.5 else -8.0)
     def draw(self, surf):
-        # ====== DESENHO COM SPRITE (ADICIONADO) ======
-        if BALL_IMG:
-            rect = BALL_IMG.get_rect(center=(int(self.x), int(self.y)))
-            surf.blit(BALL_IMG, rect)
-        else:
-            pygame.draw.circle(surf, WHITE, (int(self.x), int(self.y)), self.r)
-            pygame.draw.circle(
-                surf, DARK,
-                (int(self.x - self.r * 0.3), int(self.y - self.r * 0.3)),
-                max(2, int(self.r * 0.12))
-            )
+        if BALL_IMG: surf.blit(BALL_IMG, BALL_IMG.get_rect(center=(int(self.x), int(self.y))))
+        else: pygame.draw.circle(surf, WHITE, (int(self.x), int(self.y)), self.r)
 
 class Player:
     def __init__(self, x, color, controls, image=None):
-        self.x = x
-        self.y = GROUND_Y - 40
-        self.vx = 0.0
-        self.vy = 0.0
-        self.radius = 18
-        self.head_radius = 23
-        self.color = color
-        self.speed = 5.0
-        self.on_ground = True
-        self.facing = 1
-        self.controls = controls
-        self.score = 0
-        self.kick_cooldown = 0
-        self.image = image
-
-        if self.color == BLUE:
-            self.left_leg_img = PLAYER_BLUE_LEG_LEFT
-            self.right_leg_img = PLAYER_BLUE_LEG_RIGHT
-        else:
-            self.left_leg_img = PLAYER_RED_LEG_LEFT
-            self.right_leg_img = PLAYER_RED_LEG_RIGHT
-
-        self.kick_timer = 0
-        self.kick_duration = 12
-        self.kick_side = None
-
-        # ====== PÉ GRANDE (mantido) ======
-        self.front_leg_scale = 4.8
-        self.leg_phase = 0.0
-
-    def rect(self):
-        return pygame.Rect(self.x - self.head_radius, self.y - self.head_radius, self.head_radius * 2, self.head_radius * 2)
-
+        self.x, self.y, self.color, self.controls, self.image = x, GROUND_Y - 40, color, controls, image
+        self.vx, self.vy, self.head_radius, self.speed, self.on_ground, self.facing, self.score = 0.0, 0.0, 23, 5.0, True, 1, 0
+        self.kick_cooldown, self.kick_timer, self.kick_duration, self.front_leg_scale = 0, 0, 12, 4.8
+        self.left_leg_img = PLAYER_BLUE_LEG_LEFT if color == BLUE else PLAYER_RED_LEG_LEFT
+        self.right_leg_img = PLAYER_BLUE_LEG_RIGHT if color == BLUE else PLAYER_RED_LEG_RIGHT
     def update(self, keys):
-        moving_left = keys[self.controls['left']]
-        moving_right = keys[self.controls['right']]
-
-        if moving_left and not moving_right:
-            self.vx = -self.speed
-            self.facing = -1
-        if moving_right and not moving_left:
-            self.vx = self.speed
-            self.facing = 1
-        if not moving_left and not moving_right:
-            self.vx *= 0.85
-            if abs(self.vx) < 0.1:
-                self.vx = 0.0
-
-        if keys[self.controls['jump']] and self.on_ground:
-            self.vy = -14.5
-            self.on_ground = False
-
+        if keys[self.controls['left']]: self.vx, self.facing = -self.speed, -1
+        elif keys[self.controls['right']]: self.vx, self.facing = self.speed, 1
+        else: self.vx *= 0.85
+        if keys[self.controls['jump']] and self.on_ground: self.vy, self.on_ground = -14.5, False
         self.vy += GRAVITY * 0.9
-        self.x += self.vx
-        self.y += self.vy
-
-        if self.y + self.head_radius > GROUND_Y:
-            self.y = GROUND_Y - self.head_radius
-            self.vy = 0.0
-            self.on_ground = True
-
-        # limites da tela (permite sair um pouco pra perto do gol)
-        min_x = 10
-        max_x = WIDTH - 10
-        if self.x < min_x:
-            self.x = min_x
-            self.vx = 0.0
-        if self.x > max_x:
-            self.x = max_x
-            self.vx = 0.0
-
-        if self.kick_cooldown > 0:
-            self.kick_cooldown -= 1
-
-        if self.kick_timer > 0:
-            self.kick_timer -= 1
-        else:
-            self.kick_side = None
-
-        if self.kick_timer > 0:
-            self.leg_phase = (self.leg_phase + 0.3) if hasattr(self, 'leg_phase') else 0.3
-
+        self.x, self.y = self.x + self.vx, self.y + self.vy
+        if self.y + self.head_radius > GROUND_Y: self.y, self.vy, self.on_ground = GROUND_Y - self.head_radius, 0.0, True
+        self.x = max(10, min(WIDTH - 10, self.x))
+        if self.kick_cooldown > 0: self.kick_cooldown -= 1
+        if self.kick_timer > 0: self.kick_timer -= 1
     def draw(self, surf):
         if self.image:
-            hip_x = int(self.x)
-            hip_y = int(self.y + self.head_radius * 0.5)
-
-            if self.kick_timer > 0:
-                t = (self.kick_duration - self.kick_timer) / max(1, self.kick_duration)
-                max_angle = 65
-                angle = -math.sin(t * math.pi) * max_angle
-            else:
-                angle = 0
-
-            img = self.image
-            if self.facing == -1:
-                img = pygame.transform.flip(self.image, True, False)
-
-            rect = img.get_rect()
-            rect.midbottom = (int(self.x), int(self.y + self.head_radius))
+            img = pygame.transform.flip(self.image, True, False) if self.facing == -1 else self.image
+            rect = img.get_rect(midbottom=(int(self.x), int(self.y + self.head_radius)))
             surf.blit(img, rect)
-
-            hip_x = rect.centerx
-            hip_y = rect.bottom - int(self.head_radius * 0.2)
-
-            front_side = 'right' if self.facing == 1 else 'left'
-            front_img = self.right_leg_img if front_side == 'right' else self.left_leg_img
-
-            leg_scale = self.front_leg_scale
-            leg_offset_x = int(self.head_radius * 0.95) * self.facing
-            leg_offset_y = int(self.head_radius * 0.05)
-
-            if self.kick_timer > 0:
-                t = (self.kick_duration - self.kick_timer) / max(1, self.kick_duration)
-                max_angle = 90
-                kick_ang = -math.sin(t * math.pi) * max_angle
-            else:
-                kick_ang = 0
-
-            ang_total = kick_ang
-
+            hip_x, hip_y = rect.centerx, rect.bottom - int(self.head_radius * 0.2)
+            front_img = self.right_leg_img if self.facing == 1 else self.left_leg_img
+            ang = -math.sin(((self.kick_duration - self.kick_timer) / self.kick_duration) * math.pi) * 90 if self.kick_timer > 0 else 0
             if front_img:
                 img_blit = pygame.transform.flip(front_img, True, False) if self.facing == -1 else front_img
-                rotation_angle = -ang_total * self.facing
+                rot = pygame.transform.rotozoom(img_blit, -ang * self.facing, self.front_leg_scale)
+                surf.blit(rot, rot.get_rect(center=(hip_x + (self.head_radius * 0.95) * self.facing, hip_y)))
+        else: pygame.draw.circle(surf, self.color, (int(self.x), int(self.y)), self.head_radius)
+    def try_kick(self, ball, keys, k_type='kick'):
+        if k_type in self.controls and keys[self.controls[k_type]] and self.kick_cooldown == 0:
+            self.kick_timer, self.kick_cooldown = self.kick_duration, 12
+            dx, dy, dist = ball.x - self.x, ball.y - self.y, math.hypot(ball.x - self.x, ball.y - self.y)
+            if dist < self.head_radius + ball.r + 20: 
+                f = 16.0 if k_type == 'lob' else 18.0
+                ball.vx += (dx/(dist+1e-6)) * f + self.facing * (2.0 if k_type == 'lob' else 4.0)
+                ball.vy += (dy/(dist+1e-6)) * f - (16.0 if k_type == 'lob' else 3.0)
 
-                # ====== ROTOZOOM (mantido) -> pé grande ======
-                rot = pygame.transform.rotozoom(img_blit, rotation_angle, leg_scale)
-
-                r = rot.get_rect(center=(hip_x + leg_offset_x, hip_y + leg_offset_y))
-                surf.blit(rot, r)
-            else:
-                leg_w = max(18, int(self.head_radius * 0.8))
-                leg_h = max(48, int(self.head_radius * 2.0))
-                leg_surf = pygame.Surface((leg_w, leg_h), pygame.SRCALPHA)
-                pygame.draw.rect(leg_surf, self.color, (0, 0, leg_w, leg_h))
-                rotation_angle = -ang_total * self.facing
-                rot = pygame.transform.rotozoom(leg_surf, rotation_angle, leg_scale)
-                r = rot.get_rect(center=(hip_x + leg_offset_x, hip_y + leg_offset_y))
-                surf.blit(rot, r)
-            return
-
-        body_rect = pygame.Rect(int(self.x - 18), int(self.y), 36, int(self.head_radius * 0.9))
-        pygame.draw.rect(surf, self.color, body_rect)
-        pygame.draw.circle(surf, self.color, (int(self.x), int(self.y - 6)), self.head_radius)
-        eye_x = int(self.x + self.facing * 10)
-        pygame.draw.circle(surf, WHITE, (eye_x - 8, int(self.y - 12)), 6)
-        pygame.draw.circle(surf, WHITE, (eye_x + 8, int(self.y - 12)), 6)
-        pygame.draw.circle(surf, BLACK, (eye_x - 8, int(self.y - 12)), 3)
-        pygame.draw.circle(surf, BLACK, (eye_x + 8, int(self.y - 12)), 3)
-
-    def try_kick(self, ball, keys, kick_type='kick'):
-        if kick_type not in self.controls or not keys[self.controls[kick_type]]:
-            return
-        if self.kick_cooldown == 0:
-            self.kick_timer = self.kick_duration
-            self.kick_side = 'right' if self.facing == 1 else 'left'
-            self.kick_cooldown = 18
-
-            dx = ball.x - self.x
-            dy = ball.y - self.y
-            dist = math.hypot(dx, dy)
-            if dist < self.head_radius + ball.r + 15:
-                if kick_type == 'lob':
-                    force = 16.0
-                    nx = dx / (dist + 1e-6)
-                    ny = dy / (dist + 1e-6)
-                    ball.vx += nx * force + self.facing * 2.0
-                    ball.vy += ny * force - 16.0
-                else:
-                    force = 18.0
-                    nx = dx / (dist + 1e-6)
-                    ny = dy / (dist + 1e-6)
-                    ball.vx += nx * force + self.facing * 4.0
-                    ball.vy += ny * force - 3.0
-
-    def try_headbutt(self, ball, keys, kick_type='kick'):
-        if kick_type not in self.controls or not keys[self.controls[kick_type]]:
-            return
-
-        dx = ball.x - self.x
-        dy = ball.y - (self.y - self.head_radius * 0.5)
-        dist = math.hypot(dx, dy)
-
-        if dy < -5 and dist < self.head_radius + ball.r + 12 and self.kick_cooldown == 0:
-            self.kick_timer = self.kick_duration
-            self.kick_side = 'right' if self.facing == 1 else 'left'
-            self.kick_cooldown = 18
-
-            force = 17.0
-            nx = dx / (dist + 1e-6)
-            ny = dy / (dist + 1e-6)
-
-            if kick_type == 'lob':
-                ball.vx += nx * force + self.facing * 3.0
-                ball.vy += ny * force - 10.0
-            else:
-                ball.vx += nx * force + self.facing * 3.0
-                ball.vy += ny * force - 5.0
-                self.kick_timer = self.kick_duration
-                self.kick_side = 'right' if self.facing == 1 else 'left'
-
-# ------ Funções utilitárias ------
-def circle_collision(player, ball):
-    dx = ball.x - player.x
-    dy = ball.y - (player.y - player.head_radius * 0.7)
-    dist = math.hypot(dx, dy)
-    min_dist = player.head_radius + ball.r
-
-    if dist < min_dist and dist > 0.1:
-        overlap = min_dist - dist
-        nx = dx / dist
-        ny = dy / dist
-
-        push_distance = max(overlap * 2.0 + 5, player.head_radius * 0.3)
-        ball.x += nx * push_distance
-        ball.y += ny * push_distance
-
-        attempts = 0
-        while math.hypot(ball.x - player.x, ball.y - (player.y - 6)) < min_dist * 1.05 and attempts < 10:
-            ball.x += nx * 2
-            ball.y += ny * 2
-            attempts += 1
-
-        rel_vel_norm = (ball.vx - player.vx) * nx + (ball.vy - player.vy) * ny
-        if rel_vel_norm < 0:
-            e = PLAYER_BOUNCE * 1.2
-            impulse = -(1 + e) * rel_vel_norm * 0.6
-            ball.vx += impulse * nx
-            ball.vy += impulse * ny
-
-        ball.vx += player.vx * 0.08
-        ball.vy += player.vy * 0.08
-
-def resolve_player_collision(p1, p2):
-    dx = p2.x - p1.x
-    dy = (p2.y - 6) - (p1.y - 6)
-    dist = math.hypot(dx, dy)
-    min_dist = p1.head_radius + p2.head_radius
-    if dist == 0:
-        dx = 1.0
-        dist = 1.0
-    if dist < min_dist:
-        overlap = min_dist - dist
-        nx = dx / dist
-        ny = dy / dist
-        push_x = nx * (overlap + 2)
-        push_y = ny * (overlap + 2)
-        p1.x -= push_x
-        p1.y -= push_y
-        p2.x += push_x
-        p2.y += push_y
-
-        rel_vel = (p2.vx - p1.vx) * nx + (p2.vy - p1.vy) * ny
-        if rel_vel < 0:
-            e = 0.2
-            impulse = -(1 + e) * rel_vel * 0.5
-            p1.vx -= impulse * nx
-            p1.vy -= impulse * ny
-            p2.vx += impulse * nx
-            p2.vy += impulse * ny
-
-        if p1.y + p1.head_radius > GROUND_Y:
-            p1.y = GROUND_Y - p1.head_radius
-            p1.vy = 0.0
-            p1.on_ground = True
-        if p2.y + p2.head_radius > GROUND_Y:
-            p2.y = GROUND_Y - p2.head_radius
-            p2.vy = 0.0
-            p2.on_ground = True
-
-def draw_field(surf):
-    if bg_image:
-        surf.blit(bg_image, (0, 0))
-    else:
-        surf.fill(GREEN)
-
-def check_goal(ball, players):
-    if ball.x - ball.r <= 10 and GROUND_Y - 115 < ball.y < GROUND_Y:
-        return 'right'
-    if ball.x + ball.r >= WIDTH - 10 and GROUND_Y - 115 < ball.y < GROUND_Y:
-        return 'left'
-    return None
+def circle_collision(p, b):
+    dx, dy, dist = b.x - p.x, b.y - (p.y - p.head_radius * 0.7), math.hypot(b.x - p.x, b.y - (p.y - p.head_radius * 0.7))
+    if dist < p.head_radius + b.r and dist > 0.1:
+        nx, ny = dx/dist, dy/dist
+        b.x, b.y = b.x + nx*(p.head_radius + b.r - dist + 5), b.y + ny*(p.head_radius + b.r - dist + 5)
+        rv = (b.vx - p.vx)*nx + (b.vy - p.vy)*ny
+        if rv < 0:
+            imp = -(1 + PLAYER_BOUNCE * 1.2) * rv * 0.6
+            b.vx, b.vy = b.vx + imp*nx, b.vy + imp*ny
 
 def reset_positions(ball, p1, p2):
-    ball.x = WIDTH // 2
-    ball.y = HEIGHT // 2 - 30
-    ball.vx = random.choice([-3, 3])
-    ball.vy = -4
-    p1.x = WIDTH * 0.25
-    p1.y = GROUND_Y - p1.head_radius
-    p1.vx = p1.vy = 0
-    p2.x = WIDTH * 0.75
-    p2.y = GROUND_Y - p2.head_radius
-    p2.vx = p2.vy = 0
+    ball.x, ball.y, ball.vx, ball.vy = WIDTH//2, HEIGHT//2-30, random.choice([-3, 3]), -4
+    p1.x, p1.y, p2.x, p2.y = WIDTH*0.25, GROUND_Y-p1.head_radius, WIDTH*0.75, GROUND_Y-p2.head_radius
+    p1.vx = p1.vy = p2.vx = p2.vy = 0
 
-# ====== TELA INICIAL (ADICIONADA) ======
-def tela_inicial():
-    esperando = True
-    while esperando:
-        clock.tick(FPS)
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    pygame.quit()
-                    sys.exit()
-                if event.key in (pygame.K_RETURN, pygame.K_SPACE):
-                    esperando = False
-
-        draw_field(screen)
-
-        titulo = font.render("FOOTBALL HEADS", True, WHITE)
-        subtitulo = font.render("Pressione ESPAÇO ou ENTER para jogar", True, YELLOW)
-        controles1 = font.render("Azul: A/D move, W pula, S chuta, X lob", True, WHITE)
-        controles2 = font.render("Vermelho: ←/→ move, ↑ pula, ↓ chuta, M lob", True, WHITE)
-        sair_txt = font.render("ESC para sair", True, WHITE)
-
-        screen.blit(titulo, (WIDTH // 2 - titulo.get_width() // 2, HEIGHT // 2 - 120))
-        screen.blit(subtitulo, (WIDTH // 2 - subtitulo.get_width() // 2, HEIGHT // 2 - 70))
-        screen.blit(controles1, (WIDTH // 2 - controles1.get_width() // 2, HEIGHT // 2 + 10))
-        screen.blit(controles2, (WIDTH // 2 - controles2.get_width() // 2, HEIGHT // 2 + 45))
-        screen.blit(sair_txt, (WIDTH // 2 - sair_txt.get_width() // 2, HEIGHT // 2 + 90))
-
-        pygame.display.flip()
-
-# ------ Inicialização do jogo ------
 ball = Ball(WIDTH // 2, HEIGHT // 2 - 50)
-controls_p1 = {'left': pygame.K_a, 'right': pygame.K_d, 'jump': pygame.K_w, 'kick': pygame.K_s, 'lob': pygame.K_x}
-controls_p2 = {'left': pygame.K_LEFT, 'right': pygame.K_RIGHT, 'jump': pygame.K_UP, 'kick': pygame.K_DOWN, 'lob': pygame.K_m}
+p1 = Player(WIDTH*0.25, BLUE, {'left':pygame.K_a,'right':pygame.K_d,'jump':pygame.K_w,'kick':pygame.K_s,'lob':pygame.K_x}, PLAYER_BLUE_IMG)
+p2 = Player(WIDTH*0.75, RED, {'left':pygame.K_LEFT,'right':pygame.K_RIGHT,'jump':pygame.K_UP,'kick':pygame.K_DOWN,'lob':pygame.K_m}, PLAYER_RED_IMG)
 
-p1 = Player(WIDTH * 0.25, BLUE, controls_p1, image=PLAYER_BLUE_IMG)
-p2 = Player(WIDTH * 0.75, RED, controls_p2, image=PLAYER_RED_IMG)
-
+tela.tela_inicial(screen, clock)
 reset_positions(ball, p1, p2)
-
-# ====== CHAMA TELA INICIAL ======
-tela_inicial()
-
-# ------ Loop principal ------
-running = True
-paused = False
-goal_cooldown = 0
+running, paused, goal_cooldown = True, False, 0
 
 while running:
-    dt = clock.tick(FPS)
-    keys = pygame.key.get_pressed()
-
+    clock.tick(FPS)
     for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            sys.exit()
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE:
-                pygame.quit()
-                sys.exit()
-            if event.key == pygame.K_SPACE:
-                paused = not paused
-
+        if event.type == pygame.QUIT: pygame.quit(); sys.exit()
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE: paused = not paused
     if not paused:
-        p1.update(keys)
-        p2.update(keys)
-
-        # ====== NÃO EMPURRAR JOGADOR (REMOVIDO) ======
-        # resolve_player_collision(p1, p2)
-
-        ball.update()
-        ball.check_stuck_between_players(p1, p2)
-
-        circle_collision(p1, ball)
-        circle_collision(p2, ball)
-
-        p1.try_kick(ball, keys, 'kick')
-        p1.try_kick(ball, keys, 'lob')
-        p1.try_headbutt(ball, keys, 'kick')
-        p1.try_headbutt(ball, keys, 'lob')
-
-        p2.try_kick(ball, keys, 'kick')
-        p2.try_kick(ball, keys, 'lob')
-        p2.try_headbutt(ball, keys, 'kick')
-        p2.try_headbutt(ball, keys, 'lob')
-
+        keys = pygame.key.get_pressed()
+        p1.update(keys); p2.update(keys); ball.update()
+        ball.check_stuck_between_players(p1, p2); circle_collision(p1, ball); circle_collision(p2, ball)
+        for p in [p1, p2]:
+            p.try_kick(ball, keys, 'kick'); p.try_kick(ball, keys, 'lob')
         if goal_cooldown == 0:
-            scorer = check_goal(ball, (p1, p2))
-            if scorer == 'right':
-                p2.score += 1
-                ball.vx *= 0.3
-                ball.vy *= 0.3
-                goal_cooldown = FPS * 3
-                reset_positions(ball, p1, p2)
-            elif scorer == 'left':
-                p1.score += 1
-                ball.vx *= 0.3
-                ball.vy *= 0.3
-                goal_cooldown = FPS * 3
-                reset_positions(ball, p1, p2)
-        else:
-            goal_cooldown -= 1
+            if ball.x - ball.r <= 10 and 485 < ball.y < GROUND_Y: p2.score += 1; goal_cooldown = FPS * 3; reset_positions(ball, p1, p2)
+            elif ball.x + ball.r >= WIDTH - 10 and 485 < ball.y < GROUND_Y: p1.score += 1; goal_cooldown = FPS * 3; reset_positions(ball, p1, p2)
+        else: goal_cooldown -= 1
+    
+    screen.blit(bg_image, (0, 0)) if bg_image else screen.fill(GREEN)
+    p1.draw(screen); p2.draw(screen); ball.draw(screen)
 
-    draw_field(screen)
+    # PLACAR BRANCO E AUMENTADO
+    score_txt = font.render(f"{p1.score}  -  {p2.score}", True, WHITE)
+    screen.blit(score_txt, (WIDTH // 2 - score_txt.get_width() // 2, 18))
 
-    p1.draw(screen)
-    p2.draw(screen)
-    ball.draw(screen)
-
-    score_text = font.render(f"{p1.score}  -  {p2.score}", True, BLACK)
-    screen.blit(score_text, (WIDTH // 2 - score_text.get_width() // 2, 18))
-
+    # TEXTO PAUSADO COM MESMO TAMANHO DO PLACAR
     if paused:
-        pause_txt = font.render("PAUSADO", True, BLACK)
-        screen.blit(pause_txt, (WIDTH // 2 - pause_txt.get_width() // 2, HEIGHT // 2 - 20))
-
-    pygame.display.flip()
-
+        p_txt = font.render("PAUSADO", True, WHITE)
+        screen.blit(p_txt, (WIDTH // 2 - p_txt.get_width() // 2, HEIGHT // 2 - p_txt.get_height() // 2))
+    
     if p1.score >= SCORE_TO_WIN or p2.score >= SCORE_TO_WIN:
-        winner = "Azul" if p1.score > p2.score else "Vermelho"
-        end_txt = font.render(f"{winner} venceu! Aperte ESC para sair.", True, BLACK)
-        screen.blit(end_txt, (WIDTH // 2 - end_txt.get_width() // 2, HEIGHT // 2 + 40))
-        pygame.display.flip()
-
-        while True:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
-                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                    pygame.quit()
-                    sys.exit()
+        winner = "Azul" if p1.score >= SCORE_TO_WIN else "Vermelho"
+        if tela.tela_vitoria(screen, clock, winner) == "REINICIAR":
+            p1.score = p2.score = 0
+            reset_positions(ball, p1, p2)
+            goal_cooldown = 0
+        else: running = False
+    pygame.display.flip()
