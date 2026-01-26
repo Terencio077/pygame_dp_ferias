@@ -3,35 +3,57 @@ import math
 import random
 from config import *
 
-# Carregamento de Sprites para as Classes
 from colisoes import try_load_image
 
-# (Lógica de processamento de imagens movida para cá para ser acessível pelas classes)
-_p_blue = try_load_image("Player Blu.png")
-if _p_blue:
-    target_h = int(40 * 2.2)
-    _w = int(_p_blue.get_width() * (target_h / _p_blue.get_height()))
-    PLAYER_BLUE_IMG = pygame.transform.scale(_p_blue.convert_alpha(), (_w, target_h))
-else: PLAYER_BLUE_IMG = None
+# Global variables for loaded images
+PLAYER_BLUE_IMG = None
+PLAYER_RED_IMG = None
+PLAYER_BLUE_LEG_LEFT = None
+PLAYER_BLUE_LEG_RIGHT = None
+PLAYER_RED_LEG_LEFT = None
+PLAYER_RED_LEG_RIGHT = None
+BALL_IMG = None
 
-_p_red = try_load_image("Player Red.png")
-if _p_red:
-    target_h = int(40 * 2.2)
-    _w = int(_p_red.get_width() * (target_h / _p_red.get_height()))
-    PLAYER_RED_IMG = pygame.transform.scale(_p_red.convert_alpha(), (_w, target_h))
-else: PLAYER_RED_IMG = None
-
-_p_b_left = try_load_image("Player blu left leg.png")
-PLAYER_BLUE_LEG_LEFT = pygame.transform.scale(_p_b_left.convert_alpha(), (_p_b_left.get_width(), _p_b_left.get_height())) if _p_b_left else None
-_p_b_right = try_load_image("Player blu right leg.png")
-PLAYER_BLUE_LEG_RIGHT = pygame.transform.scale(_p_b_right.convert_alpha(), (_p_b_right.get_width(), _p_b_right.get_height())) if _p_b_right else (pygame.transform.flip(PLAYER_BLUE_LEG_LEFT, True, False) if PLAYER_BLUE_LEG_LEFT else None)
-
-_p_r_left = try_load_image("Player red left leg.png")
-PLAYER_RED_LEG_LEFT = pygame.transform.scale(_p_r_left.convert_alpha(), (_p_r_left.get_width(), _p_r_left.get_height())) if _p_r_left else None
-PLAYER_RED_LEG_RIGHT = pygame.transform.flip(PLAYER_RED_LEG_LEFT, True, False) if PLAYER_RED_LEG_LEFT else None
-
-_ball_img_raw = try_load_image("ball.png") or try_load_image("Ball.png") or try_load_image("bola.png")
-BALL_IMG = pygame.transform.smoothscale(_ball_img_raw.convert_alpha(), (38, 38)) if _ball_img_raw else None
+def initialize_assets():
+    """Initialize all image assets. Call this after pygame display is created."""
+    global PLAYER_BLUE_IMG, PLAYER_RED_IMG, PLAYER_BLUE_LEG_LEFT, PLAYER_BLUE_LEG_RIGHT
+    global PLAYER_RED_LEG_LEFT, PLAYER_RED_LEG_RIGHT, BALL_IMG
+    
+    _p_blue = try_load_image("Player Blu.png")
+    print(f"Player Blue: {_p_blue is not None}")
+    if _p_blue:
+        PLAYER_BLUE_IMG = pygame.transform.scale(_p_blue.convert_alpha(), (int(_p_blue.get_width() * (88 / _p_blue.get_height())), 88))
+    
+    _p_red = try_load_image("Player Red.png")
+    print(f"Player Red: {_p_red is not None}")
+    if _p_red:
+        PLAYER_RED_IMG = pygame.transform.scale(_p_red.convert_alpha(), (int(_p_red.get_width() * (88 / _p_red.get_height())), 88))
+    
+    _p_b_left = try_load_image("Player blu left leg.png")
+    print(f"Player Blue Left Leg: {_p_b_left is not None}")
+    PLAYER_BLUE_LEG_LEFT = pygame.transform.scale(_p_b_left.convert_alpha(), (_p_b_left.get_width(), _p_b_left.get_height())) if _p_b_left else None
+    _p_b_right = try_load_image("Player blu right leg.png")
+    print(f"Player Blue Right Leg: {_p_b_right is not None}")
+    PLAYER_BLUE_LEG_RIGHT = pygame.transform.scale(_p_b_right.convert_alpha(), (_p_b_right.get_width(), _p_b_right.get_height())) if _p_b_right else (pygame.transform.flip(PLAYER_BLUE_LEG_LEFT, True, False) if PLAYER_BLUE_LEG_LEFT else None)
+    
+    _p_r_left = try_load_image("Player red left leg.png")
+    print(f"Player Red Left Leg: {_p_r_left is not None}")
+    PLAYER_RED_LEG_LEFT = pygame.transform.scale(_p_r_left.convert_alpha(), (_p_r_left.get_width(), _p_r_left.get_height())) if _p_r_left else None
+    PLAYER_RED_LEG_RIGHT = pygame.transform.flip(PLAYER_RED_LEG_LEFT, True, False) if PLAYER_RED_LEG_LEFT else None
+    
+    _ball_img_raw = (try_load_image("football.png") or try_load_image("BALL_IMG.png") or 
+                     try_load_image("ball.png") or try_load_image("Ball.png") or 
+                     try_load_image("bola.png") or try_load_image("Bola.png") or 
+                     try_load_image("BALL.png") or try_load_image("BOLA.png") or 
+                     try_load_image("ball.jpg") or try_load_image("Ball.jpg") or 
+                     try_load_image("BALL_IMG.jpg"))
+    print(f"Ball Image (trying multiple variations): {_ball_img_raw is not None}")
+    if _ball_img_raw:
+        BALL_IMG = pygame.transform.smoothscale(_ball_img_raw.convert_alpha(), (38, 38))
+    else:
+        print("AVISO: Nenhuma imagem de bola foi encontrada!")
+        print(f"  - Procurou por: football.png, BALL_IMG.png e outras variações")
+        print(f"  - Verifique o nome exato do arquivo na pasta 'assets_futebol'")
 
 class Ball:
     def __init__(self, x, y, r=18):
@@ -87,11 +109,10 @@ class Ball:
                 self.vy, self.vx = -25.0, (8.0 if random.random() > 0.5 else -8.0) + random.uniform(-3, 3)
 
     def draw(self, surf):
+        global BALL_IMG
         if BALL_IMG:
             rect = BALL_IMG.get_rect(center=(int(self.x), int(self.y)))
             surf.blit(BALL_IMG, rect)
-        else:
-            pygame.draw.circle(surf, WHITE, (int(self.x), int(self.y)), self.r)
 
 class Player:
     def __init__(self, x, color, controls, image=None):
@@ -102,10 +123,6 @@ class Player:
         self.on_ground, self.facing = True, 1
         self.controls, self.score = controls, 0
         self.kick_cooldown, self.image = 0, image
-        if self.color == BLUE:
-            self.left_leg_img, self.right_leg_img = PLAYER_BLUE_LEG_LEFT, PLAYER_BLUE_LEG_RIGHT
-        else:
-            self.left_leg_img, self.right_leg_img = PLAYER_RED_LEG_LEFT, PLAYER_RED_LEG_RIGHT
         self.kick_timer, self.kick_duration, self.kick_side = 0, 12, None
         self.front_leg_scale, self.leg_phase = 4.8, 0.0
 
@@ -131,19 +148,24 @@ class Player:
         else: self.kick_side = None
 
     def draw(self, surf):
+        global PLAYER_BLUE_LEG_LEFT, PLAYER_BLUE_LEG_RIGHT, PLAYER_RED_LEG_LEFT, PLAYER_RED_LEG_RIGHT
         if self.image:
             img = pygame.transform.flip(self.image, True, False) if self.facing == -1 else self.image
             rect = img.get_rect(midbottom=(int(self.x), int(self.y + self.head_radius)))
             surf.blit(img, rect)
             hip_x, hip_y = rect.centerx, rect.bottom - int(self.head_radius * 0.2)
-            front_img = self.right_leg_img if (self.facing == 1) else self.left_leg_img
+            
+            if self.color == BLUE:
+                front_img = PLAYER_BLUE_LEG_RIGHT if (self.facing == 1) else PLAYER_BLUE_LEG_LEFT
+            else:
+                front_img = PLAYER_RED_LEG_RIGHT if (self.facing == 1) else PLAYER_RED_LEG_LEFT
+            
             kick_ang = -math.sin(((self.kick_duration - self.kick_timer) / max(1, self.kick_duration)) * math.pi) * 90 if self.kick_timer > 0 else 0
             if front_img:
                 img_blit = pygame.transform.flip(front_img, True, False) if self.facing == -1 else front_img
                 rot = pygame.transform.rotozoom(img_blit, -kick_ang * self.facing, self.front_leg_scale)
                 surf.blit(rot, rot.get_rect(center=(hip_x + int(self.head_radius * 0.95) * self.facing, hip_y + int(self.head_radius * 0.05))))
             return
-        pygame.draw.circle(surf, self.color, (int(self.x), int(self.y - 6)), self.head_radius)
 
     def try_kick(self, ball, keys, kick_type='kick'):
         if kick_type not in self.controls or not keys[self.controls[kick_type]]: return

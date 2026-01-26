@@ -1,6 +1,35 @@
 import pygame
 import sys
 import os
+from config import *
+
+# Global variable for background
+BG_FIELD = None
+
+def load_background():
+    """Load the background image for the field."""
+    global BG_FIELD
+    largura, altura = WIDTH, HEIGHT
+    
+    # Try different filename variations
+    filenames = ['plano de fundo.png', 'plano_de_fundo.png', 'fundo.png', 
+                 'Plano de fundo.png', 'background.png', 'Background.png',
+                 'fundo.tela.png']
+    
+    for filename in filenames:
+        caminho = os.path.join('assets_futebol', filename)
+        try:
+            if os.path.exists(caminho):
+                BG_FIELD = pygame.image.load(caminho).convert()
+                BG_FIELD = pygame.transform.scale(BG_FIELD, (largura, altura))
+                print(f"Background loaded: {filename}")
+                return
+        except Exception as e:
+            print(f"Failed to load {filename}: {e}")
+    
+    print("AVISO: Imagem de fundo não encontrada! Usando cor sólida.")
+    BG_FIELD = pygame.Surface((largura, altura))
+    BG_FIELD.fill((30, 144, 255))
 
 def desenhar_texto_contornado(screen, texto, fonte, cor_interna, cor_contorno, pos_centro):
     x, y = pos_centro
@@ -109,3 +138,11 @@ def tela_vitoria(screen, clock, vencedor):
             desenhar_texto_contornado(screen, opt, font_menu, cor, (0,0,0), rects[i].center)
         pygame.display.flip()
         clock.tick(60)
+
+def draw_field(screen):
+    """Draw the football field background."""
+    global BG_FIELD
+    if BG_FIELD:
+        screen.blit(BG_FIELD, (0, 0))
+    else:
+        screen.fill((34, 139, 34))
