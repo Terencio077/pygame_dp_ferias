@@ -5,7 +5,7 @@ from config import *
 
 from colisoes import try_load_image
 
-# Global variables for loaded images
+#variaveis globais de imagens
 PLAYER_BLUE_IMG = None
 PLAYER_RED_IMG = None
 PLAYER_BLUE_LEG_LEFT = None

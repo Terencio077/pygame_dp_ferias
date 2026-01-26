@@ -3,7 +3,7 @@ import os
 
 WIDTH, HEIGHT = 1000, 600
 FPS = 60
-GROUND_Y = HEIGHT - 80  # Will be adjusted to HEIGHT - 20 if background loads
+GROUND_Y = HEIGHT - 80
 SCORE_TO_WIN = 5
 
 # Física

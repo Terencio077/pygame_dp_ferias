@@ -14,29 +14,27 @@ def main_loop():
     clock = pygame.time.Clock()
     font = pygame.font.SysFont("Arial", 45)
     
-    # Initialize assets AFTER display is created
+    # inicializa assets e importa classes
     import assets
     assets.initialize_assets()
     
-    # Import Ball and Player classes
+    # importa classes
     from assets import Ball, Player
     
-    # Load background FIRST
+    # background
     from tela import load_background
     load_background()
-    
-    # Adjust GROUND_Y BEFORE creating players
+
     from tela import BG_FIELD
     if BG_FIELD:
         import config
         config.GROUND_Y = HEIGHT - 20
 
-    # Now use the updated globals from assets module
     P_BLUE = assets.PLAYER_BLUE_IMG
     P_RED = assets.PLAYER_RED_IMG
     BALL_IMG = assets.BALL_IMG
 
-    # Validate that critical images loaded
+    # valida imagens carregadas
     if P_BLUE is None:
         print("ERRO: Imagem do jogador azul não carregou!")
         pygame.quit()
@@ -53,12 +51,22 @@ def main_loop():
     # 2. MENU INICIAL
     tela_inicial(screen, clock)
 
+    # Load crowd sound for gameplay using musicas module
+    import musicas
+    musicas.load_torcida()
+    
+    # Get the loaded sound from the musicas module
+    TORCIDA_SOUND = musicas.TORCIDA_SOUND
+
     # 3. INSTANCIAÇÃO DOS OBJETOS (AFTER GROUND_Y is set)
     ball = Ball(WIDTH // 2, HEIGHT // 2 - 50)
     p1 = Player(WIDTH * 0.25, BLUE, {'left': pygame.K_a, 'right': pygame.K_d, 'jump': pygame.K_w, 'kick': pygame.K_s, 'lob': pygame.K_x}, image=P_BLUE)
     p2 = Player(WIDTH * 0.75, RED, {'left': pygame.K_LEFT, 'right': pygame.K_RIGHT, 'jump': pygame.K_UP, 'kick': pygame.K_DOWN, 'lob': pygame.K_m}, image=P_RED)
 
     reset_positions(ball, p1, p2)
+    
+    # Play crowd sound in loop with reduced volume
+    musicas.play_torcida()
 
     running = True
     paused = False
@@ -105,7 +113,7 @@ def main_loop():
                 goal_cooldown -= 1
 
         # RENDERIZAÇÃO
-        draw_field(screen) # Usa a função de fundo do seu tela.py ou game_logic.py
+        draw_field(screen)
         p1.draw(screen)
         p2.draw(screen)
         ball.draw(screen)
@@ -120,6 +128,9 @@ def main_loop():
 
         # VERIFICAÇÃO DE VITÓRIA
         if p1.score >= SCORE_TO_WIN or p2.score >= SCORE_TO_WIN:
+            # Stop crowd sound before victory screen
+            musicas.stop_torcida()
+            
             vencedor = "Azul" if p1.score > p2.score else "Vermelho"
             
             # Chama a sua TELA DE VITÓRIA

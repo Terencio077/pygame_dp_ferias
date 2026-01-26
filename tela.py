@@ -2,8 +2,9 @@ import pygame
 import sys
 import os
 from config import *
+import musicas
 
-# Global variable for background
+# variaveis
 BG_FIELD = None
 
 def load_background():
@@ -11,7 +12,6 @@ def load_background():
     global BG_FIELD
     largura, altura = WIDTH, HEIGHT
     
-    # Try different filename variations
     filenames = ['plano de fundo.png', 'plano_de_fundo.png', 'fundo.png', 
                  'Plano de fundo.png', 'background.png', 'Background.png',
                  'fundo.tela.png']
@@ -41,6 +41,9 @@ def desenhar_texto_contornado(screen, texto, fonte, cor_interna, cor_contorno, p
     screen.blit(surf_p, surf_p.get_rect(center=(x, y)))
 
 def tela_inicial(screen, clock):
+    # le arquivo de som
+    musicas.load_wakawaka()
+    
     largura, altura = screen.get_size()
     caminho = os.path.join('assets_futebol', 'fundo.tela.png')
     try:
@@ -56,6 +59,9 @@ def tela_inicial(screen, clock):
     font_ajuda = pygame.font.SysFont("arial", 25, bold=True)
     options = ["PLAY", "CONFIGURAÇÕES", "SAIR"]
     mostrar_ajuda = False
+    
+    # Play wakawaka sound
+    musicas.play_wakawaka()
 
     while True:
         mouse_pos = pygame.mouse.get_pos()
@@ -72,7 +78,10 @@ def tela_inicial(screen, clock):
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     for i, r in enumerate(rects):
                         if r.collidepoint(mouse_pos):
-                            if i == 0: return 
+                            if i == 0: 
+                                # Stop wakawaka before returning
+                                musicas.stop_wakawaka()
+                                return 
                             elif i == 1: mostrar_ajuda = True
                             elif i == 2: pygame.quit(); sys.exit()
             else:
