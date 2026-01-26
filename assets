@@ -4,7 +4,7 @@ import random
 from config import *
 
 # Carregamento de Sprites para as Classes
-from utils import try_load_image
+from colisoes import try_load_image
 
 # (Lógica de processamento de imagens movida para cá para ser acessível pelas classes)
 _p_blue = try_load_image("Player Blu.png")
