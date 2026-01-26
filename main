@@ -5,6 +5,7 @@ import math
 import random
 import tela 
 
+# ------ Configurações ------
 WIDTH, HEIGHT = 1000, 600
 FPS = 60
 GROUND_Y = HEIGHT - 80
@@ -12,7 +13,7 @@ SCORE_TO_WIN = 5
 GRAVITY = 0.9
 FRICTION = 0.995
 BALL_FRICTION = 0.999
-BALL_BOUNCE = 0.65       
+BALL_BOUNCE = 0.65       # Reduzido para não pular tanto
 MAX_BALL_SPEED = 15.0    
 PLAYER_BOUNCE = 0.15     
 BALL_GRAVITY_MULT = 0.9  
@@ -23,7 +24,7 @@ pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 
-# Fonte aumentada para 45
+# Fonte para o placar e pausa (tamanho aumentado e cor branca)
 font = pygame.font.SysFont("Arial", 45)
 
 def try_load_image(name):
@@ -33,6 +34,7 @@ def try_load_image(name):
         except: continue
     return None
 
+# Carregamento de Recursos
 _bg = try_load_image("plano de fundo.png")
 bg_image = pygame.transform.scale(_bg, (WIDTH, HEIGHT)).convert() if _bg else None
 if bg_image: GROUND_Y = HEIGHT - 20
@@ -47,7 +49,8 @@ PLAYER_BLUE_LEG_RIGHT = try_load_image("Player blu right leg.png")
 PLAYER_RED_LEG_LEFT = try_load_image("Player red left leg.png")
 PLAYER_RED_LEG_RIGHT = pygame.transform.flip(PLAYER_RED_LEG_LEFT, True, False) if PLAYER_RED_LEG_LEFT else None
 
-_ball = try_load_image("ball.png") or try_load_image("bola.png")
+# USANDO A IMAGEM football.png PARA A BOLA
+_ball = try_load_image("football.png")
 BALL_IMG = pygame.transform.smoothscale(_ball.convert_alpha(), (38, 38)) if _ball else None
 
 class Ball:
@@ -159,10 +162,11 @@ while running:
     screen.blit(bg_image, (0, 0)) if bg_image else screen.fill(GREEN)
     p1.draw(screen); p2.draw(screen); ball.draw(screen)
 
+    # PLACAR BRANCO E AUMENTADO
     score_txt = font.render(f"{p1.score}  -  {p2.score}", True, WHITE)
     screen.blit(score_txt, (WIDTH // 2 - score_txt.get_width() // 2, 18))
 
-    # TEXTO PAUSADO COM MESMO TAMANHO E COR DO PLACAR
+    # TEXTO PAUSADO COM MESMO TAMANHO DO PLACAR
     if paused:
         p_txt = font.render("PAUSADO", True, WHITE)
         screen.blit(p_txt, (WIDTH // 2 - p_txt.get_width() // 2, HEIGHT // 2 - p_txt.get_height() // 2))
@@ -172,5 +176,6 @@ while running:
         if tela.tela_vitoria(screen, clock, winner) == "REINICIAR":
             p1.score = p2.score = 0
             reset_positions(ball, p1, p2)
+            goal_cooldown = 0
         else: running = False
     pygame.display.flip()
