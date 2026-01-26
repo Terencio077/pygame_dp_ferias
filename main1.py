@@ -1,9 +1,9 @@
 import pygame
 import sys
 from config import *
-from utils import circle_collision, check_goal, reset_positions
-from sprites import Ball, Player, PLAYER_BLUE_IMG, PLAYER_RED_IMG
-from game_logic import draw_field, tela_inicial
+from colisoes import circle_collision, check_goal, reset_positions
+from assets import Ball, Player, PLAYER_BLUE_IMG, PLAYER_RED_IMG
+from logica import draw_field, tela_inicial
 
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
