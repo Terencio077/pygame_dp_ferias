@@ -12,20 +12,27 @@ def load_background():
     global BG_FIELD
     largura, altura = WIDTH, HEIGHT
     
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    
     filenames = ['plano de fundo.png', 'plano_de_fundo.png', 'fundo.png', 
                  'Plano de fundo.png', 'background.png', 'Background.png',
                  'fundo.tela.png']
     
     for filename in filenames:
-        caminho = os.path.join('assets_futebol', filename)
-        try:
-            if os.path.exists(caminho):
-                BG_FIELD = pygame.image.load(caminho).convert()
-                BG_FIELD = pygame.transform.scale(BG_FIELD, (largura, altura))
-                print(f"Background loaded: {filename}")
-                return
-        except Exception as e:
-            print(f"Failed to load {filename}: {e}")
+        # Tenta caminhos relativos e absolutos
+        caminhos = [
+            os.path.join('assets_futebol', filename),
+            os.path.join(script_dir, 'assets_futebol', filename)
+        ]
+        for caminho in caminhos:
+            try:
+                if os.path.exists(caminho):
+                    BG_FIELD = pygame.image.load(caminho).convert()
+                    BG_FIELD = pygame.transform.scale(BG_FIELD, (largura, altura))
+                    print(f"Background loaded: {filename}")
+                    return
+            except Exception as e:
+                print(f"Failed to load {filename}: {e}")
     
     print("AVISO: Imagem de fundo não encontrada! Usando cor sólida.")
     BG_FIELD = pygame.Surface((largura, altura))

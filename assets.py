@@ -39,7 +39,9 @@ def initialize_assets():
     _p_r_left = try_load_image("Player red left leg.png")
     print(f"Player Red Left Leg: {_p_r_left is not None}")
     PLAYER_RED_LEG_LEFT = pygame.transform.scale(_p_r_left.convert_alpha(), (_p_r_left.get_width(), _p_r_left.get_height())) if _p_r_left else None
-    PLAYER_RED_LEG_RIGHT = pygame.transform.flip(PLAYER_RED_LEG_LEFT, True, False) if PLAYER_RED_LEG_LEFT else None
+    _p_r_right = try_load_image("Player red right leg.png")
+    print(f"Player Red Right Leg: {_p_r_right is not None}")
+    PLAYER_RED_LEG_RIGHT = pygame.transform.scale(_p_r_right.convert_alpha(), (_p_r_right.get_width(), _p_r_right.get_height())) if _p_r_right else (pygame.transform.flip(PLAYER_RED_LEG_LEFT, True, False) if PLAYER_RED_LEG_LEFT else None)
     
     _ball_img_raw = (try_load_image("football.png") or try_load_image("BALL_IMG.png") or 
                      try_load_image("ball.png") or try_load_image("Ball.png") or 

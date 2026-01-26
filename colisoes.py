@@ -5,11 +5,21 @@ import random
 from config import *
 
 def try_load_image(name):
-    paths = [name, os.path.join('assets', name), os.path.join('assets_futebol', name)]
+    # Usa o diretório do script como base
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    paths = [
+        name,
+        os.path.join('assets', name),
+        os.path.join('assets_futebol', name),
+        os.path.join(script_dir, 'assets', name),
+        os.path.join(script_dir, 'assets_futebol', name)
+    ]
     for p in paths:
         try:
-            return pygame.image.load(p)
-        except Exception:
+            if os.path.exists(p):
+                img = pygame.image.load(p)
+                return img
+        except Exception as e:
             continue
     return None
 
