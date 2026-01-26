@@ -5,7 +5,6 @@ import math
 import random
 import tela 
 
-# ------ Configurações ------
 WIDTH, HEIGHT = 1000, 600
 FPS = 60
 GROUND_Y = HEIGHT - 80
@@ -23,7 +22,9 @@ WHITE, BLACK, GREEN, BLUE, RED = (255,255,255), (0,0,0), (40,180,60), (60,140,22
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
-font = pygame.font.SysFont("Arial", 28)
+
+# Fonte aumentada para 45
+font = pygame.font.SysFont("Arial", 45)
 
 def try_load_image(name):
     paths = [name, os.path.join('assets', name), os.path.join('assets_futebol', name)]
@@ -32,7 +33,6 @@ def try_load_image(name):
         except: continue
     return None
 
-# Carregamento de Recursos
 _bg = try_load_image("plano de fundo.png")
 bg_image = pygame.transform.scale(_bg, (WIDTH, HEIGHT)).convert() if _bg else None
 if bg_image: GROUND_Y = HEIGHT - 20
@@ -110,12 +110,9 @@ class Player:
         else: pygame.draw.circle(surf, self.color, (int(self.x), int(self.y)), self.head_radius)
     def try_kick(self, ball, keys, k_type='kick'):
         if k_type in self.controls and keys[self.controls[k_type]] and self.kick_cooldown == 0:
-            # Ativa a animação INDEPENDENTE de onde a bola está
             self.kick_timer, self.kick_cooldown = self.kick_duration, 12
-            
-            # Testa a física apenas se a bola estiver perto
             dx, dy, dist = ball.x - self.x, ball.y - self.y, math.hypot(ball.x - self.x, ball.y - self.y)
-            if dist < self.head_radius + ball.r + 20: # Aumentei um pouco o alcance do chute
+            if dist < self.head_radius + ball.r + 20: 
                 f = 16.0 if k_type == 'lob' else 18.0
                 ball.vx += (dx/(dist+1e-6)) * f + self.facing * (2.0 if k_type == 'lob' else 4.0)
                 ball.vy += (dy/(dist+1e-6)) * f - (16.0 if k_type == 'lob' else 3.0)
@@ -161,8 +158,14 @@ while running:
     
     screen.blit(bg_image, (0, 0)) if bg_image else screen.fill(GREEN)
     p1.draw(screen); p2.draw(screen); ball.draw(screen)
-    score_txt = font.render(f"{p1.score}  -  {p2.score}", True, BLACK)
+
+    score_txt = font.render(f"{p1.score}  -  {p2.score}", True, WHITE)
     screen.blit(score_txt, (WIDTH // 2 - score_txt.get_width() // 2, 18))
+
+    # TEXTO PAUSADO COM MESMO TAMANHO E COR DO PLACAR
+    if paused:
+        p_txt = font.render("PAUSADO", True, WHITE)
+        screen.blit(p_txt, (WIDTH // 2 - p_txt.get_width() // 2, HEIGHT // 2 - p_txt.get_height() // 2))
     
     if p1.score >= SCORE_TO_WIN or p2.score >= SCORE_TO_WIN:
         winner = "Azul" if p1.score >= SCORE_TO_WIN else "Vermelho"
