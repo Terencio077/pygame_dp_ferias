@@ -57,7 +57,7 @@ def tela_inicial(screen, clock):
     font_titulo = pygame.font.SysFont(fonte_nome, 100)
     font_menu = pygame.font.SysFont(fonte_nome, 55)
     font_ajuda = pygame.font.SysFont("arial", 25, bold=True)
-    options = ["PLAY", "CONFIGURAÇÕES", "SAIR"]
+    options = ["PLAY", "REGRAS", "SAIR"]
     mostrar_ajuda = False
     
     # Play wakawaka sound

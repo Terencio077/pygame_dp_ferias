@@ -50,22 +50,18 @@ def main_loop():
 
     # 2. MENU INICIAL
     tela_inicial(screen, clock)
-
-    # Load crowd sound for gameplay using musicas module
     import musicas
     musicas.load_torcida()
-    
-    # Get the loaded sound from the musicas module
+
     TORCIDA_SOUND = musicas.TORCIDA_SOUND
 
-    # 3. INSTANCIAÇÃO DOS OBJETOS (AFTER GROUND_Y is set)
+    # 3. INSTANCIAÇÃO DOS OBJETOS
     ball = Ball(WIDTH // 2, HEIGHT // 2 - 50)
     p1 = Player(WIDTH * 0.25, BLUE, {'left': pygame.K_a, 'right': pygame.K_d, 'jump': pygame.K_w, 'kick': pygame.K_s, 'lob': pygame.K_x}, image=P_BLUE)
     p2 = Player(WIDTH * 0.75, RED, {'left': pygame.K_LEFT, 'right': pygame.K_RIGHT, 'jump': pygame.K_UP, 'kick': pygame.K_DOWN, 'lob': pygame.K_m}, image=P_RED)
 
     reset_positions(ball, p1, p2)
     
-    # Play crowd sound in loop with reduced volume
     musicas.play_torcida()
 
     running = True
@@ -91,6 +87,27 @@ def main_loop():
             p1.update(keys)
             p2.update(keys)
             ball.update()
+
+            #Detecção de ponto instantâneo ao bater na parede
+            try:
+                ball_radius = ball.radius
+            except Exception:
+                ball_radius = BALL_IMG.get_width() // 2
+
+            # verifica colisão com as paredes laterais e pontua imediatamente
+            if goal_cooldown == 0:
+                if ball.x - ball.r <= 10 and 485 < ball.y < GROUND_Y:
+                    p2.score += 1
+                    goal_cooldown = FPS * 3
+                    reset_positions(ball, p1, p2)
+                elif ball.x + ball.r >= WIDTH - 10 and 485 < ball.y < GROUND_Y:
+                    p1.score += 1
+                    goal_cooldown = FPS * 3
+                    reset_positions(ball, p1, p2)
+            else:
+                goal_cooldown -= 1
+
+
             ball.check_stuck_between_players(p1, p2)
             circle_collision(p1, ball)
             circle_collision(p2, ball)
@@ -100,17 +117,6 @@ def main_loop():
                 p.try_kick(ball, keys, 'lob')
                 p.try_headbutt(ball, keys, 'kick')
                 p.try_headbutt(ball, keys, 'lob')
-
-            # VERIFICAÇÃO DE GOL
-            if goal_cooldown == 0:
-                scorer = check_goal(ball, (p1, p2))
-                if scorer:
-                    if scorer == 'right': p2.score += 1
-                    else: p1.score += 1
-                    goal_cooldown = FPS * 3
-                    reset_positions(ball, p1, p2)
-            else:
-                goal_cooldown -= 1
 
         # RENDERIZAÇÃO
         draw_field(screen)
@@ -128,7 +134,6 @@ def main_loop():
 
         # VERIFICAÇÃO DE VITÓRIA
         if p1.score >= SCORE_TO_WIN or p2.score >= SCORE_TO_WIN:
-            # Stop crowd sound before victory screen
             musicas.stop_torcida()
             
             vencedor = "Azul" if p1.score > p2.score else "Vermelho"
@@ -140,6 +145,8 @@ def main_loop():
                 p1.score = 0
                 p2.score = 0
                 reset_positions(ball, p1, p2)
+
+                musicas.play_torcida()
             else:
                 running = False
         
