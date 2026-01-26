@@ -76,10 +76,8 @@ class Ball:
             self.vx *= BALL_FRICTION
         if self.x - self.r < 0:
             self.x = self.r
-            self.vx = abs(self.vx) * 0.8
         if self.x + self.r > WIDTH:
             self.x = WIDTH - self.r
-            self.vx = -abs(self.vx) * 0.8
         if self.y - self.r < 0:
             self.y = self.r
             self.vy = abs(self.vy) * BALL_BOUNCE
