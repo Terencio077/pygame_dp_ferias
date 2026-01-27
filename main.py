@@ -10,7 +10,7 @@ def main_loop():
     # 1. INICIALIZAÇÃO (Obrigatório antes de qualquer conversão de imagem)
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
-    pygame.display.set_caption("Football Heads - Pygame Prototype")
+    pygame.display.set_caption("Footbeças")
     clock = pygame.time.Clock()
     font = pygame.font.SysFont("Arial", 45)
     

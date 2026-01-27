@@ -97,7 +97,7 @@ def tela_inicial(screen, clock):
 
         screen.blit(bg_menu, (0, 0))
         if not mostrar_ajuda:
-            desenhar_texto_contornado(screen, "FUTEBOL GAME", font_titulo, (255,255,255), (0,0,0), (largura//2, 150))
+            desenhar_texto_contornado(screen, "FUTEBEÇAS", font_titulo, (255,255,255), (0,0,0), (largura//2, 150))
             for i, opt in enumerate(options):
                 cor = (255, 215, 0) if rects[i].collidepoint(mouse_pos) else (255, 255, 255)
                 desenhar_texto_contornado(screen, opt, font_menu, cor, (0,0,0), rects[i].center)
