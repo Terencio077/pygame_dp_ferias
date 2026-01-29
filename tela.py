@@ -52,11 +52,26 @@ def tela_inicial(screen, clock):
     musicas.load_wakawaka()
     
     largura, altura = screen.get_size()
-    caminho = os.path.join('assets_futebol', 'fundo.tela.png')
-    try:
-        bg_menu = pygame.image.load(caminho).convert()
-        bg_menu = pygame.transform.scale(bg_menu, (largura, altura))
-    except:
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    filenames = ['fundo.tela.png', 'plano de fundo.png', 'plano_de_fundo.png', 'fundo.png', 'background.png', 'Background.png']
+    bg_menu = None
+    for filename in filenames:
+        caminhos = [
+            os.path.join('assets_futebol', filename),
+            os.path.join(script_dir, 'assets_futebol', filename)
+        ]
+        for caminho in caminhos:
+            try:
+                if os.path.exists(caminho):
+                    bg_menu = pygame.image.load(caminho).convert()
+                    bg_menu = pygame.transform.scale(bg_menu, (largura, altura))
+                    print(f"Menu background loaded: {filename}")
+                    break
+            except Exception as e:
+                print(f"Failed to load menu background {filename}: {e}")
+        if bg_menu:
+            break
+    if not bg_menu:
         bg_menu = pygame.Surface((largura, altura))
         bg_menu.fill((30, 144, 255))
 
@@ -120,11 +135,26 @@ def tela_vitoria(screen, clock, vencedor):
     font_menu = pygame.font.SysFont(fonte_nome, 55)
     options = ["REINICIAR", "SAIR"]
     
-    caminho = os.path.join('assets_futebol', 'fundo.tela.png')
-    try:
-        bg_menu = pygame.image.load(caminho).convert()
-        bg_menu = pygame.transform.scale(bg_menu, (largura, altura))
-    except:
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    filenames = ['fundo.tela.png', 'plano de fundo.png', 'plano_de_fundo.png', 'fundo.png', 'background.png', 'Background.png']
+    bg_menu = None
+    for filename in filenames:
+        caminhos = [
+            os.path.join('assets_futebol', filename),
+            os.path.join(script_dir, 'assets_futebol', filename)
+        ]
+        for caminho in caminhos:
+            try:
+                if os.path.exists(caminho):
+                    bg_menu = pygame.image.load(caminho).convert()
+                    bg_menu = pygame.transform.scale(bg_menu, (largura, altura))
+                    print(f"Menu background loaded: {filename}")
+                    break
+            except Exception as e:
+                print(f"Failed to load menu background {filename}: {e}")
+        if bg_menu:
+            break
+    if not bg_menu:
         bg_menu = pygame.Surface((largura, altura))
         bg_menu.fill((30, 144, 255))
 

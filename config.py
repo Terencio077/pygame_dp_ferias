@@ -3,7 +3,9 @@ import os
 
 WIDTH, HEIGHT = 1000, 600
 FPS = 60
-GROUND_Y = HEIGHT - 80
+# Ground height: smaller subtraction -> ground moved down (players appear lower)
+# Increased further so players sit closer to bottom edge
+GROUND_Y = HEIGHT - 10
 SCORE_TO_WIN = 5
 
 # Física
