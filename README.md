@@ -14,6 +14,6 @@
     Como roda:
             Ter instalado a biblioteca PyGame
 
-    Endereço vídeo:
+    Endereço vídeo: https://www.youtube.com/watch?v=3Yk7LcveniM
             
 
